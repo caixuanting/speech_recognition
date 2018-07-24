@@ -1,12 +1,15 @@
 # Author: caixuanting@gmail.com
 
-import tensorflow as tf
 import unittest as ut
 
-from input_fn import _parse_serialized_example
-from input_fn import input_fn
-from generate_example import generate_sequence_example
+import tensorflow as tf
+
 from constant import *
+from generate_example import generate_sequence_example
+from input_fn import _parse_serialized_example
+from input_fn import train_input_fn
+from input_fn import eval_input_fn
+
 
 class TestInputFnMethods(ut.TestCase):
     def test_parse_serialized_example(self):
@@ -27,27 +30,26 @@ class TestInputFnMethods(ut.TestCase):
         label = list(session.run(
             tf.sparse_tensor_to_dense(
                 parsed_context_output[LABEL])))
-        
+
         self.assertListEqual([0, 1], label)
         self.assertListEqual([0, 0],
                              list(parsed_feature_output[FEATURE][0]))
         self.assertListEqual([1, 1],
                              list(parsed_feature_output[FEATURE][1]))
 
-
-    def test_input_fn(self):
-        features, labels = input_fn(['test_data/sequence_examples.tfrecord'],
-                                    2, # num_features
-                                    1, # buffer_size
-                                    1, # batch_size
-                                    1, # num_epochs
-        )
+    def test_train_input_fn(self):
+        features, labels = train_input_fn(['test_data/input_fn_test.tfrecord'],
+                                          2,  # num_features
+                                          1,  # buffer_size
+                                          1,  # batch_size
+                                          1,  # num_epochs
+                                          )
 
         session = tf.Session()
-        
+
         features_output = session.run(features)
         labels_output = session.run(labels)
-        
+
         self.assertListEqual([4], list(features_output[SEQUENCE_LENGTH]))
         self.assertListEqual([0, 0], list(features_output[FEATURE][0][0]))
         self.assertListEqual([0, 0], list(features_output[FEATURE][0][1]))
@@ -59,6 +61,40 @@ class TestInputFnMethods(ut.TestCase):
 
         self.assertListEqual([0, 1], list(labels[0]))
 
-        
+    def test_train_input_fn_batch(self):
+        features, labels = train_input_fn(['test_data/input_fn_test.tfrecord'],
+                                          2,  # num_features
+                                          1,  # buffer_size
+                                          2,  # batch_size
+                                          1,  # num_epochs
+                                          )
+
+        session = tf.Session()
+
+        features_output = session.run(features)
+        labels_output = session.run(labels)
+
+        self.assertEqual(2, len(features_output[SEQUENCE_LENGTH]))
+        self.assertEqual(2, len(features_output[FEATURE]))
+
+        labels = session.run(
+            tf.sparse_tensor_to_dense(labels_output))
+
+        self.assertEqual(2, len(labels))
+
+    def test_eval_input_fn(self):
+        features, labels = eval_input_fn()
+
+        self.assertIsNone(labels)
+
+        session = tf.Session()
+
+        features_output = session.run(features)
+
+        self.assertListEqual([2], list(features_output[SEQUENCE_LENGTH]))
+        self.assertListEqual([0, 0], list(features_output[FEATURE][0][0]))
+        self.assertListEqual([1, 1], list(features_output[FEATURE][0][1]))
+
+
 if __name__ == '__main__':
     ut.main()

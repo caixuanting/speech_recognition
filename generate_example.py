@@ -1,20 +1,23 @@
 # Author: caixuanting@gmail.com
-import sys
 
+import sys
+from random import randint
 import tensorflow as tf
 
 from google.protobuf import text_format
 
 from constant import *
 
+
 def write_example(filename, examples):
-    '''
+    """
     Write TFRecord into file.
 
     Input:
         filename - the file path
-        examples - a list of examples
-    '''
+        examples - a list of example protos
+    """
+
     writer = tf.python_io.TFRecordWriter(filename)
 
     for example in examples:
@@ -24,13 +27,16 @@ def write_example(filename, examples):
 
 
 def generate_sequence_example(feature, label):
-    '''
+    """
     Generate sequence examples according to feature and label
 
     Input:
         feature - the feature of the example
         label - the label of the example
-    '''
+    Output:
+        example - protobufs of example
+    """
+
     feature_list = [tf.train.Feature(float_list=tf.train.FloatList(value=f))
                     for f in feature]
 
@@ -42,7 +48,7 @@ def generate_sequence_example(feature, label):
         int64_list=tf.train.Int64List(value=label))
     sequence_length_list = tf.train.Feature(
         int64_list=tf.train.Int64List(value=[len(feature)]))
-    
+
     context_features = tf.train.Features(
         feature={SEQUENCE_LENGTH: sequence_length_list,
                  LABEL: label_list})
@@ -54,34 +60,26 @@ def generate_sequence_example(feature, label):
 
 
 if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print('Usage: python generate_example.py [file_path]')
+        sys.exit(1)
+
     sequence_examples = []
-    
-    sequence_examples.append(
-        generate_sequence_example(
-            [[0, 0], [0, 0], [1, 1], [1, 1]],
-            [0, 1]
-        )
-    )
 
-    sequence_examples.append(
-        generate_sequence_example(
-            [[0, 0], [1, 1], [1, 1], [1, 1]],
-            [0, 1]
-        )
-    )
+    for _ in range(100):
+        feature = []
+        label = []
 
-    sequence_examples.append(
-        generate_sequence_example(
-            [[1, 1], [1, 1], [0, 0], [0, 0]],
-            [1, 0]
-        )
-    )
+        for _ in range(randint(1, 20)):
+            feature.append([randint(0, 2)])
 
-    sequence_examples.append(
-        generate_sequence_example(
-            [[1, 1], [1, 1], [1, 1], [0, 0]],
-            [1, 0]
-        )
-    )
-        
+        label = [feature[0][0]]
+
+        for f in feature:
+            if f[0] != label[-1]:
+                label.append(f[0])
+
+        example = generate_sequence_example(feature, label)
+        sequence_examples.append(example)
+
     write_example(sys.argv[1], sequence_examples)
