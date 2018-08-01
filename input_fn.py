@@ -1,40 +1,101 @@
-# coding=utf-8
 # Author: caixuanting@gmail.com
 
 import tensorflow as tf
 
-from constant import *
+from constant import FEATURE
+from constant import LABEL
+from constant import LENGTH
 
 
-def _parse_serialized_example(serialized_example, num_features):
+def _pad_features(features, max_length):
     """
-    Parse serialized example proto.
+    Pad features to the same length
+    Use the last element of each sequence to pad itself
 
-    Input：
-        serialized_example - serialized example proto
-        num_features - number of features for each frame
+    Input:
+        features - feature sequences
+        max_length - max length of feature sequences
 
     Output:
-        parsed_context - a dictionary contains sequence label and sequence length
-        parsed_feature - a dictionary contains sequence feature
+        padded_features - feature sequences with the same length
     """
 
-    context_features = {
-        SEQUENCE_LENGTH: tf.FixedLenFeature([], dtype=tf.int64),
-        LABEL: tf.VarLenFeature(dtype=tf.int64)
-    }
+    padded_features = []
 
-    sequence_features = {
-        FEATURE: tf.FixedLenSequenceFeature([num_features, ], dtype=tf.float32)
-    }
+    for feature in features:
+        feature_length = len(feature)
 
-    parsed_context, parsed_feature = tf.parse_single_sequence_example(
-        serialized=serialized_example,
-        context_features=context_features,
-        sequence_features=sequence_features
-    )
+        if feature_length < max_length:
+            padded_values = [feature[-1]] * (max_length - feature_length)
+            feature = feature + padded_values
+        padded_features.append(feature)
 
-    return parsed_context, parsed_feature
+    return padded_features
+
+
+def _parse_from_proto(string_examples):
+    """
+    Generate label, length and feature list from SequenceExample proto.
+
+    Input:
+        string_examples - SequenceExample in serialized string format
+
+    Output:
+        labels - batch of labels in list format
+        lengths - batch of lengths in list format
+        features - batch of features in list format
+    """
+
+    labels, lengths, features = [], [], []
+
+    for string_example in string_examples:
+        proto_example = tf.train.SequenceExample()
+        proto_example.ParseFromString(string_example)
+
+        context = proto_example.context
+
+        labels.append(list(context.feature[LABEL].int64_list.value))
+        lengths = lengths + map(int, context.feature[LENGTH].int64_list.value)
+
+        feature = [f.float_list.value for f in proto_example.feature_lists.feature_list[FEATURE].feature]
+
+        features.append(feature)
+
+    return labels, lengths, features
+
+
+def _parse_example(string_examples):
+    """
+    Parse tf.record into tensor format
+
+    Input:
+        string_examples - batch of tf.examples in serialized string format
+
+    Output:
+        indices - indices for label sparse tensor
+        values - values for label sparse tensor
+        dense_shape - dense shape for label sparse tensor
+        lengths - lengths of feature sequences
+        padded_features - padded feature sequences, padded with last element of each sequence
+    """
+
+    labels, lengths, features = _parse_from_proto(string_examples)
+
+    max_length = max(lengths)
+
+    padded_features = _pad_features(features, max_length)
+
+    indices, values = [], []
+
+    dense_shape = [len(labels), max([len(x) for x in labels])]
+
+    for i in range(len(labels)):
+        values = values + map(int, labels[i])
+
+        for j in range(len(labels[i])):
+            indices.append([i, j])
+
+    return indices, values, dense_shape, lengths, padded_features
 
 
 def train_input_fn(filenames, num_features, buffer_size, batch_size, num_epochs):
@@ -54,21 +115,29 @@ def train_input_fn(filenames, num_features, buffer_size, batch_size, num_epochs)
     """
 
     dataset = tf.data.TFRecordDataset(filenames)
-    dataset = dataset.map(lambda x: _parse_serialized_example(x, num_features))
+
     dataset = dataset.shuffle(buffer_size=buffer_size)
     dataset = dataset.batch(batch_size=batch_size)
     dataset = dataset.repeat(count=num_epochs)
+
+    dataset = dataset.map(lambda x: tf.py_func(
+        func=_parse_example,
+        inp=[x],
+        Tout=([tf.int64, tf.int64, tf.int64, tf.int64, tf.float64])))
+
     iterator = dataset.make_one_shot_iterator()
 
-    parsed_context, parsed_feature = iterator.get_next()
+    indices, values, dense_shape, lengths, padded_features = iterator.get_next()
 
+    values = tf.cast(values, dtype=tf.int32)
+    labels = tf.SparseTensor(indices=indices, values=values, dense_shape=dense_shape)
+
+    padded_features.set_shape([batch_size, None, num_features])
+    padded_features = tf.cast(padded_features, dtype=tf.float32)
     features = {
-        SEQUENCE_LENGTH: parsed_context[SEQUENCE_LENGTH],
-        FEATURE: parsed_feature[FEATURE]
+        FEATURE: padded_features,
+        LENGTH: lengths
     }
-
-    # CTC loss only takes int32
-    labels = tf.cast(parsed_context[LABEL], dtype=tf.int32)
 
     return features, labels
 
@@ -78,24 +147,36 @@ def eval_input_fn():
     Generate evaluation example
 
     Output:
-        features - a dictionary contains sequence length and sequence feature
-        labels - sequence label
+        features - a dictionary contains length and feature
+        labels - None
     """
 
     dataset = tf.data.Dataset.from_tensor_slices({
-        'feature': tf.constant(
+        FEATURE: tf.constant(
             [
                 [
                     [0],
-                    [1]
+                    [1],
+                    [2]
+                ],
+                [
+                    [2],
+                    [1],
+                    [0]
                 ],
                 [
                     [1],
-                    [0]
+                    [1],
+                    [2]
+                ],
+                [
+                    [2],
+                    [0],
+                    [1]
                 ]
             ],
             dtype=tf.float32),
-        'sequence_length': [2, 2]
+        LENGTH: [3, 3, 3, 3]
     })
 
     dataset = dataset.batch(batch_size=1)

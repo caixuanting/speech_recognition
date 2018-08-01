@@ -8,7 +8,7 @@ python local_pipeline.py \
        --learning_rate 0.01 \
        --filenames test_data/sequence_examples.tfrecord \
        --num_features 1 \
-       --buffer_size 1 \
-       --batch_size 1 \
-       --num_epochs 100 \
+       --buffer_size 50 \
+       --batch_size 5 \
+       --num_epochs 1000 \
        --steps 10000

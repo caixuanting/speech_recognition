@@ -2,11 +2,12 @@
 
 import sys
 from random import randint
+
 import tensorflow as tf
 
-from google.protobuf import text_format
-
-from constant import *
+from constant import FEATURE
+from constant import LABEL
+from constant import LENGTH
 
 
 def write_example(filename, examples):
@@ -20,8 +21,8 @@ def write_example(filename, examples):
 
     writer = tf.python_io.TFRecordWriter(filename)
 
-    for example in examples:
-        writer.write(example.SerializeToString())
+    for ex in examples:
+        writer.write(ex.SerializeToString())
 
     writer.close()
 
@@ -50,7 +51,7 @@ def generate_sequence_example(feature, label):
         int64_list=tf.train.Int64List(value=[len(feature)]))
 
     context_features = tf.train.Features(
-        feature={SEQUENCE_LENGTH: sequence_length_list,
+        feature={LENGTH: sequence_length_list,
                  LABEL: label_list})
 
     example = tf.train.SequenceExample(context=context_features,
@@ -66,7 +67,7 @@ if __name__ == '__main__':
 
     sequence_examples = []
 
-    for _ in range(100):
+    for _ in range(1000):
         feature = []
         label = []
 

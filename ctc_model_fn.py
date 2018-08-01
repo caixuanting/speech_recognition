@@ -4,17 +4,18 @@ import tensorflow as tf
 
 from constant import FEATURE
 from constant import LEARNING_RATE
+from constant import LENGTH
 from constant import NUM_CLASSES
 from constant import NUM_LAYERS
 from constant import NUM_UNITS
-from constant import SEQUENCE_LENGTH
 from constant import SOFTMAX
 
 
 def lstm_model_fn(features, labels, mode, params):
     feature = features[FEATURE]
+
     # CTC loss only takes int32
-    sequence_length = tf.cast(features[SEQUENCE_LENGTH], dtype=tf.int32)
+    sequence_length = tf.cast(features[LENGTH], dtype=tf.int32)
 
     cells = []
 

@@ -4,42 +4,16 @@ import unittest as ut
 
 import tensorflow as tf
 
-from constant import *
-from generate_example import generate_sequence_example
-from input_fn import _parse_serialized_example
-from input_fn import train_input_fn
+from constant import FEATURE
+from constant import LENGTH
 from input_fn import eval_input_fn
+from input_fn import train_input_fn
 
 
 class TestInputFnMethods(ut.TestCase):
-    def test_parse_serialized_example(self):
-        sequence_example = generate_sequence_example(
-            [[0, 0], [1, 1]], [0, 1])
-
-        parsed_context, parsed_feature = _parse_serialized_example(
-            sequence_example.SerializeToString(), 2)
-
-        session = tf.Session()
-
-        parsed_context_output = session.run(parsed_context)
-        parsed_feature_output = session.run(parsed_feature)
-
-        sequence_length = parsed_context_output[SEQUENCE_LENGTH]
-        self.assertEqual(2, sequence_length)
-
-        label = list(session.run(
-            tf.sparse_tensor_to_dense(
-                parsed_context_output[LABEL])))
-
-        self.assertListEqual([0, 1], label)
-        self.assertListEqual([0, 0],
-                             list(parsed_feature_output[FEATURE][0]))
-        self.assertListEqual([1, 1],
-                             list(parsed_feature_output[FEATURE][1]))
-
-    def test_train_input_fn(self):
+    def test_train_input_fn_single(self):
         features, labels = train_input_fn(['test_data/input_fn_test.tfrecord'],
-                                          2,  # num_features
+                                          1,  # num_features
                                           1,  # buffer_size
                                           1,  # batch_size
                                           1,  # num_epochs
@@ -47,53 +21,62 @@ class TestInputFnMethods(ut.TestCase):
 
         session = tf.Session()
 
-        features_output = session.run(features)
-        labels_output = session.run(labels)
+        result_features, result_labels = session.run([features, labels])
 
-        self.assertListEqual([4], list(features_output[SEQUENCE_LENGTH]))
-        self.assertListEqual([0, 0], list(features_output[FEATURE][0][0]))
-        self.assertListEqual([0, 0], list(features_output[FEATURE][0][1]))
-        self.assertListEqual([1, 1], list(features_output[FEATURE][0][2]))
-        self.assertListEqual([1, 1], list(features_output[FEATURE][0][3]))
+        length = result_features[LENGTH]
+        self.assertEqual(8, length)
 
-        labels = session.run(
-            tf.sparse_tensor_to_dense(labels_output))
+        feature = result_features[FEATURE]
+        self.assertListEqual([1., 0., 1., 2., 1., 2., 2., 1.], list(feature.flatten()))
 
-        self.assertListEqual([0, 1], list(labels[0]))
+        self.assertListEqual([0, 0,
+                              0, 1,
+                              0, 2,
+                              0, 3,
+                              0, 4,
+                              0, 5,
+                              0, 6],
+                             list(result_labels.indices.flatten()))
+
+        self.assertListEqual([1, 0, 1, 2, 1, 2, 1], list(result_labels.values))
+
+        self.assertListEqual([1, 7], list(result_labels.dense_shape))
 
     def test_train_input_fn_batch(self):
         features, labels = train_input_fn(['test_data/input_fn_test.tfrecord'],
-                                          2,  # num_features
-                                          1,  # buffer_size
+                                          1,  # num_features
+                                          5,  # buffer_size
                                           2,  # batch_size
                                           1,  # num_epochs
                                           )
 
         session = tf.Session()
 
-        features_output = session.run(features)
-        labels_output = session.run(labels)
+        result_features, result_labels = session.run([features, labels])
 
-        self.assertEqual(2, len(features_output[SEQUENCE_LENGTH]))
-        self.assertEqual(2, len(features_output[FEATURE]))
+        length = result_features[LENGTH]
+        self.assertEqual(2, len(length))
 
-        labels = session.run(
-            tf.sparse_tensor_to_dense(labels_output))
+        feature = result_features[FEATURE]
+        self.assertEqual(2, len(feature))
+        self.assertEqual(max(length), len(feature[0]))
+        self.assertEqual(max(length), len(feature[1]))
 
-        self.assertEqual(2, len(labels))
+        self.assertEqual(len(result_labels.values), len(result_labels.indices))
+        self.assertEqual(2, len(result_labels.dense_shape))
 
     def test_eval_input_fn(self):
-        features, labels = eval_input_fn()
-
-        self.assertIsNone(labels)
+        features, _ = eval_input_fn()
 
         session = tf.Session()
 
-        features_output = session.run(features)
+        result_features = session.run([features])[0]
 
-        self.assertListEqual([2], list(features_output[SEQUENCE_LENGTH]))
-        self.assertListEqual([0, 0], list(features_output[FEATURE][0][0]))
-        self.assertListEqual([1, 1], list(features_output[FEATURE][0][1]))
+        length = result_features[LENGTH]
+        self.assertEqual(3, length)
+
+        feature = result_features[FEATURE]
+        self.assertListEqual([0, 1, 2], list(feature.flatten()))
 
 
 if __name__ == '__main__':
