@@ -3,10 +3,11 @@
 import argparse
 
 from constant import LEARNING_RATE
+from constant import MODEL_DIR
 from constant import MODEL_TYPE
+from constant import NUM_CLASSES
 from constant import NUM_LAYERS
 from constant import NUM_UNITS
-from constant import NUM_CLASSES
 
 
 def parse(argv):
@@ -15,6 +16,7 @@ def parse(argv):
 
     Input:
         argv - list of arguments
+
     Output:
         namespace - a namespace with parsed parameters
     """
@@ -32,6 +34,7 @@ def parse(argv):
     parser.add_argument('--batch_size', type=int)
     parser.add_argument('--num_epochs', type=int)
     parser.add_argument('--steps', type=int)
+    parser.add_argument('--model_dir')
 
     # parser.add_argument('--', type=int)
 
@@ -41,6 +44,7 @@ def parse(argv):
 def create_params(namespace):
     params = {
         LEARNING_RATE: namespace.learning_rate,
+        MODEL_DIR: namespace.model_dir,
         MODEL_TYPE: namespace.model_type,
         NUM_LAYERS: namespace.num_layers,
         NUM_UNITS: namespace.num_units,

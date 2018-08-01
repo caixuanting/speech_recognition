@@ -17,7 +17,8 @@ class TestParseMethods(ut.TestCase):
             '--buffer_size', '5',
             '--batch_size', '100',
             '--num_epochs', '2',
-            '--steps', '50'
+            '--steps', '50',
+            '--model_dir', 'test'
         ]
 
         output = parse(argv)
@@ -32,6 +33,7 @@ class TestParseMethods(ut.TestCase):
         self.assertEqual(100, output.batch_size)
         self.assertEqual(2, output.num_epochs)
         self.assertEqual(50, output.steps)
+        self.assertEqual('test', output.model_dir)
 
 
 if __name__ == '__main__':

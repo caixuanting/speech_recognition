@@ -31,7 +31,7 @@ def main(argv):
     predictions = estimator.predict(input_fn=eval_input_fn)
 
     for key, value in enumerate(predictions):
-        print(value['softmax'])
+        print(key, value)
 
 
 if __name__ == '__main__':
