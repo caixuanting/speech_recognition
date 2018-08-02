@@ -2,6 +2,7 @@
 
 import tensorflow as tf
 
+from constant import SOFTMAX
 from estimator import create_estimator
 from input_fn import eval_input_fn
 from input_fn import train_input_fn
@@ -31,7 +32,15 @@ def main(argv):
     predictions = estimator.predict(input_fn=eval_input_fn)
 
     for key, value in enumerate(predictions):
-        print(key, value)
+        print('------------------key:', key)
+        for row in value[SOFTMAX]:
+            row = list(row)
+            print('max index: %1d' % row.index(max(row)))
+
+        # print('==================== softmax ====================')
+        # print('|          0|          1|          2|          3|')
+        # for row in value[SOFTMAX]:
+        #    print('|%10f |%10f |%10f |%10f |' % (row[0], row[1], row[2], row[3]))
 
 
 if __name__ == '__main__':
