@@ -37,11 +37,6 @@ def main(argv):
             row = list(row)
             print('max index: %1d' % row.index(max(row)))
 
-        # print('==================== softmax ====================')
-        # print('|          0|          1|          2|          3|')
-        # for row in value[SOFTMAX]:
-        #    print('|%10f |%10f |%10f |%10f |' % (row[0], row[1], row[2], row[3]))
-
 
 if __name__ == '__main__':
     tf.app.run()

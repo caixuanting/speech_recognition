@@ -11,5 +11,5 @@ python local_pipeline.py \
        --buffer_size 100 \
        --batch_size 5 \
        --num_epochs 1000 \
-       --steps 1 \
+       --steps 10000 \
        --model_dir model/lstm_ctc

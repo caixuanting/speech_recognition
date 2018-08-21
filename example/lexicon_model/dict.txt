@@ -1,0 +1,8 @@
+开   k   ai1
+灯   d   eng1
+打开  d   a3  k   ai1
+电灯  d   ian4    d   eng1
+主卧  zh  u3  uu  uo4
+客厅  k   e4  t   ing1
+次卧  c   iy4 uu  uo4
+空调  k   ong1    t   iao2
