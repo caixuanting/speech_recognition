@@ -4,26 +4,28 @@
 #       ./run.sh kaideng dakai_diandeng
 
 # compile fst
-fstcompile --isymbols=test_data/texts.syms --osymbols=test_data/texts.syms \
-    test_data/kaideng.txt > test_data/kaideng.fst
-
-fstcompile --isymbols=test_data/texts.syms --osymbols=test_data/texts.syms \
-    test_data/dakai_diandeng.txt > test_data/dakai_diandeng.fst
-
-fstunion test_data/kaideng.fst test_data/dakai_diandeng.fst | fstclosure > test_data/test_commands.fst
+fstcompile --isymbols=test_data/phones.syms --osymbols=test_data/grammar.syms \
+    test_data/kai_deng.config > test_data/kai_deng.fst
 
 # find shortest path
-fstcompose test_data/test_commands.fst test_data/texts.fst \
+fstcompose test_data/kai_deng.fst test_data/grammar.fst \
     | fstshortestpath \
-    | fstrmepsilon \
     | fsttopsort \
-    | fstprint --isymbols=test_data/texts.syms --osymbols=test_data/texts.syms
-
-# clean up
-rm test_data/*.fst
+    | fstrmepsilon \
+    | fstprint --isymbols=test_data/phones.syms --osymbols=test_data/grammar.syms
 
 # output should be something like this
 #
-#   0       1       打开    打开    1.69414771
-#   1       2       电灯    电灯    2.9647696
-#   2       0.367724776
+#   0       1       k       开      0.694147706
+#   1       2       k       <epsilon>
+#   2       3       k       <epsilon>
+#   3       4       <blank> <epsilon>
+#   4       5       <blank> <epsilon>
+#   5       6       ai1     <epsilon>
+#   6       7       <blank> <epsilon>
+#   7       8       <blank> <epsilon>
+#   8       9       d       灯      1.9647696
+#   9       10      <blank> <epsilon>
+#   10      11      <blank> <epsilon>
+#   11      12      eng1    <epsilon>
+#   12      0.367724776

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Example usage
-#       grammar_model/run.sh example/grammar_model/texts
+#       grammar_model/run.sh example/grammar_model/grammar
 
 # generate word symbols
 # words are separated by space
@@ -18,6 +18,9 @@ ngrammake $1.cnts > $1.mod
 
 # rename model file
 mv $1.mod $1.fst
+
+# copy to test_data
+cp $1.fst grammar_model/test_data/grammar.fst
 
 # clean up
 rm $1.cnts

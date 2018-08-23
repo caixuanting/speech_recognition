@@ -25,5 +25,4 @@ for line in lines:
 
     output_file.close()
 
-
 input_file.close()

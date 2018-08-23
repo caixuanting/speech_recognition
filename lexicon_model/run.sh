@@ -11,13 +11,16 @@ fstcompile --isymbols=$2/$4 --osymbols=$5/$6 $2/lexicon.init > $2/lexicon.fst
 for file in `ls $2/*.config`
 do
     fstcompile --isymbols=$2/$4 --osymbols=$5/$6 ${file} > ${file}.fst
-    fstunion ${file}.fst $2/lexicon.fst | fstarcsort --sort_type=ilabel > $2/temp.fst
+    fstunion ${file}.fst $2/lexicon.fst | fstclosure | fstarcsort --sort_type=olabel > $2/temp.fst
     mv $2/temp.fst $2/lexicon.fst
 done
 
 # clean up
 rm $2/*.config
 rm $2/*.config.fst
+
+# copy result to test_data
+cp $2/lexicon.fst lexicon_model/test_data/lexicon.fst
 
 # print
 # example/lexicon_model/lexicon.fst \
